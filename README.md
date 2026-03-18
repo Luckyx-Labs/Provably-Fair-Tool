@@ -1,7 +1,7 @@
 # Provably-Fair-Tool
 
 An interactive **Provably Fair** deck verification tool.  
-Enter the shuffle seed (hex) to reproduce the exact card order using the same algorithm as the server (ChaCha8 + Fisher-Yates), and compute SHA256 commitments to verify fairness yourself.
+Enter the shuffle salt (hex) to reproduce the exact card order using the same algorithm as the server (ChaCha8 + Fisher-Yates), and compute SHA256 commitments to verify fairness yourself.
 
 ---
 
@@ -56,14 +56,14 @@ You should see the following welcome screen:
 ========== Provably Fair Deck Verification ==========
 Enter 'q' to quit
 
-Enter seed (hex, 64 chars):
+Enter salt (hex, 64 chars):
 ```
 
-### Step 3: Enter the Seed
+### Step 3: Enter the Salt
 
-Paste the **64-character hex seed** provided by the gaming platform and press Enter.
+Paste the **64-character hex salt** provided by the gaming platform and press Enter.
 
-> **What does a seed look like?** A string of exactly 64 characters containing only `0-9` and `a-f`:  
+> **What does a salt look like?** A string of exactly 64 characters containing only `0-9` and `a-f`:  
 > `a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2`
 
 ### Step 4: Choose Output Format
@@ -84,8 +84,8 @@ When using `text` format, you will see output similar to:
 ```
 ========== Provably Fair Verification ==========
 
-Seed (hex):         a1b2c3d4...(your seed)
-Salt Commitment:    e5f6a7b8...(= SHA256(seed), matches the platform's pre-deal commitment)
+Salt (hex):         a1b2c3d4...(your salt)
+Salt Commitment:    e5f6a7b8...(= SHA256(salt), matches the platform's pre-deal commitment)
 Shoe Hash:          c9d0e1f2...(= SHA256(card_order), hash of the card sequence)
 Total Cards:        416
 
@@ -113,7 +113,7 @@ Use the output to verify fairness as follows:
 
 ### Continue or Exit
 
-- After each verification, the program prompts for another seed so you can verify additional rounds.
+- After each verification, the program prompts for another salt so you can verify additional rounds.
 - Type `q`, `quit`, or `exit` and press Enter to quit.
 
 ---
@@ -121,30 +121,30 @@ Use the output to verify fairness as follows:
 ## How It Works
 
 ```
-Seed
+Salt
   │
-  ├──→ SHA256(seed) = Salt Commitment (published before dealing)
+  ├──→ SHA256(salt) = Salt Commitment (published before dealing)
   │
-  └──→ ChaCha8(seed) + Fisher-Yates shuffle → 416-card order
+  └──→ ChaCha8(salt) + Fisher-Yates shuffle → 416-card order
                                                   │
                                                   └──→ SHA256(card_order) = Shoe Hash
 ```
 
-1. Before dealing, the platform publishes the `Salt Commitment` (SHA256 hash of the seed). At this point, players do not know the seed.
-2. After the game ends, the platform reveals the `Seed`.
+1. Before dealing, the platform publishes the `Salt Commitment` (SHA256 hash of the salt). At this point, players do not know the salt.
+2. After the game ends, the platform reveals the `Salt`.
 3. Players use this tool to independently reproduce the card order and verify that the commitment and shoe hash match.
 
-Because SHA256 is irreversible, the platform cannot forge a seed after the fact to match a previously published commitment — this guarantees fairness.
+Because SHA256 is irreversible, the platform cannot forge a salt after the fact to match a previously published commitment — this guarantees fairness.
 
 ---
 
 ## FAQ
 
-**Q: I get `seed must be 32 bytes (64 hex chars)`**  
-A: The seed you entered has the wrong length. It must be exactly 64 hex characters (`0-9`, `a-f`). Check for extra spaces or missing characters.
+**Q: I get `salt must be 32 bytes (64 hex chars)`**  
+A: The salt you entered has the wrong length. It must be exactly 64 hex characters (`0-9`, `a-f`). Check for extra spaces or missing characters.
 
-**Q: I get `invalid seed hex`**  
-A: The seed contains invalid characters. Only `0123456789abcdef` are allowed. Check for any non-hex characters.
+**Q: I get `invalid salt hex`**  
+A: The salt contains invalid characters. Only `0123456789abcdef` are allowed. Check for any non-hex characters.
 
 **Q: Why 416 cards?**  
 A: The shoe uses 8 standard decks, each with 52 cards (4 suits × 13 ranks), totaling 8 × 52 = 416 cards.

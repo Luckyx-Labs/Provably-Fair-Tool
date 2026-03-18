@@ -1,5 +1,5 @@
 // verify_deck - Interactive Provably Fair deck verification tool.
-// Takes a shuffle seed (hex) and reproduces the exact card order using the same
+// Takes a shuffle salt (hex) and reproduces the exact card order using the same
 // algorithm as the server (ChaCha8 + Fisher-Yates), then computes SHA256 commitments.
 //
 // Usage:
@@ -7,8 +7,8 @@
 //	go run tools/verify_deck/main.go
 //
 // Verification steps:
-//  1. SHA256(seed) == salt_commitment
-//  2. Reproduce card order with seed + ChaCha8 + Fisher-Yates
+//  1. SHA256(salt) == salt_commitment
+//  2. Reproduce card order with salt + ChaCha8 + Fisher-Yates
 //  3. SHA256(card_order) == chain_head
 package main
 
@@ -47,7 +47,7 @@ func main() {
 	fmt.Println()
 
 	for {
-		fmt.Print("Enter seed (hex, 64 chars): ")
+		fmt.Print("Enter salt (hex, 64 chars): ")
 		if !scanner.Scan() {
 			break
 		}
@@ -74,17 +74,17 @@ func main() {
 	}
 }
 
-func verify(seedHex string, jsonOutput bool) error {
-	seedBytes, err := hex.DecodeString(seedHex)
+func verify(saltHex string, jsonOutput bool) error {
+	saltBytes, err := hex.DecodeString(saltHex)
 	if err != nil {
-		return fmt.Errorf("invalid seed hex: %v", err)
+		return fmt.Errorf("invalid salt hex: %v", err)
 	}
-	if len(seedBytes) != 32 {
-		return fmt.Errorf("seed must be 32 bytes (64 hex chars), got %d bytes", len(seedBytes))
+	if len(saltBytes) != 32 {
+		return fmt.Errorf("salt must be 32 bytes (64 hex chars), got %d bytes", len(saltBytes))
 	}
 
-	var seed [32]byte
-	copy(seed[:], seedBytes)
+	var salt [32]byte
+	copy(salt[:], saltBytes)
 
 	// ===== 1. Create 8 decks (416 cards) =====
 	cards := make([]Card, 0, 416)
@@ -99,16 +99,16 @@ func verify(seedHex string, jsonOutput bool) error {
 	}
 
 	// ===== 2. ChaCha8 + Fisher-Yates shuffle =====
-	rng := mathrand.New(mathrand.NewChaCha8(seed))
+	rng := mathrand.New(mathrand.NewChaCha8(salt))
 	for i := len(cards) - 1; i > 0; i-- {
 		j := rng.IntN(i + 1)
 		cards[i], cards[j] = cards[j], cards[i]
 	}
 
 	// ===== 3. Compute commitments =====
-	// C = SHA256(seed)
-	seedHash := sha256.Sum256(seed[:])
-	saltCommitment := hex.EncodeToString(seedHash[:])
+	// C = SHA256(salt)
+	saltHash := sha256.Sum256(salt[:])
+	saltCommitment := hex.EncodeToString(saltHash[:])
 
 	// H = SHA256(card_order)
 	h := sha256.New()
@@ -126,7 +126,7 @@ func verify(seedHex string, jsonOutput bool) error {
 	// ===== 4. Output results =====
 	if jsonOutput {
 		result := map[string]interface{}{
-			"seed":            seedHex,
+			"salt":            saltHex,
 			"salt_commitment": saltCommitment,
 			"shoe_hash":       shoeHash,
 			"card_count":      len(cards),
@@ -142,9 +142,9 @@ func verify(seedHex string, jsonOutput bool) error {
 	fmt.Println()
 	fmt.Println("========== Provably Fair Verification ==========")
 	fmt.Println()
-	fmt.Printf("Seed (hex):         %s\n", seedHex)
+	fmt.Printf("Salt (hex):         %s\n", saltHex)
 	fmt.Printf("Salt Commitment:    %s\n", saltCommitment)
-	fmt.Printf("  = SHA256(seed)\n")
+	fmt.Printf("  = SHA256(salt)\n")
 	fmt.Printf("Shoe Hash:          %s\n", shoeHash)
 	fmt.Printf("  = SHA256(card_order)\n")
 	fmt.Printf("Total Cards:        %d\n", len(cards))
